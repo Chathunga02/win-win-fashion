@@ -23,6 +23,7 @@ public class Product {
     private double price;
     private String imageUrl;
     private String category;
+    private List<String> images;
     private List<String> sizes;
     private List<String> colors;
 }

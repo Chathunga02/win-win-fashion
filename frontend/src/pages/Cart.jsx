@@ -108,7 +108,7 @@ const Cart = () => {
                     <div className="mt-4 sm:mt-0 sm:ml-6 flex-1 flex flex-col w-full">
                       <div className="flex justify-between">
                         <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
-                        <p className="text-lg font-bold text-gray-900">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="text-lg font-bold text-gray-900">Rs {(item.price * item.quantity).toFixed(2)}</p>
                       </div>
                       <div className="mt-1 flex text-sm text-gray-500">
                         {item.selectedColor && <p className="capitalize border-r border-gray-300 pr-3 mr-3">{item.selectedColor}</p>}
@@ -137,7 +137,7 @@ const Cart = () => {
                 Order Summary
                 <div className="flex justify-between items-center mt-2 font-normal text-base text-gray-600">
                   <span>Total</span>
-                  <span className="font-bold text-gray-900">${getCartTotal().toFixed(2)}</span>
+                  <span className="font-bold text-gray-900">Rs {getCartTotal().toFixed(2)}</span>
                 </div>
               </h2>
 
@@ -176,7 +176,7 @@ const Cart = () => {
                   disabled={isProcessing}
                   className={`w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-6 ${isProcessing ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {isProcessing ? 'Processing Order...' : `Pay $${getCartTotal().toFixed(2)}`}
+                  {isProcessing ? 'Processing Order...' : `Pay Rs ${getCartTotal().toFixed(2)}`}
                 </button>
               </form>
             </div>

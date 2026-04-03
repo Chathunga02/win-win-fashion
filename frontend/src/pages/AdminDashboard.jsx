@@ -12,13 +12,14 @@ const AdminDashboard = () => {
   // Form State
   const [showProductModal, setShowProductModal] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
   const [formData, setFormData] = useState({
     itemCode: '',
     name: '',
     description: '',
     price: '',
     imageUrl: '',
+    images: [],
     category: '',
     sizes: '',
     colors: ''
@@ -73,23 +74,26 @@ const AdminDashboard = () => {
   const handleProductSubmit = async (e) => {
     e.preventDefault();
     
-    let finalImageUrl = formData.imageUrl;
+    let finalImageUrls = [...(formData.images || [])];
     
-    if (imageFile) {
-      const imgData = new FormData();
-      imgData.append('image', imageFile);
-      try {
-        const uploadRes = await fetch('http://localhost:8080/api/upload', {
-          method: 'POST',
-          body: imgData
-        });
-        const uploadJson = await uploadRes.json();
-        if (uploadJson.url) {
-          finalImageUrl = uploadJson.url;
+    if (imageFiles && imageFiles.length > 0) {
+      finalImageUrls = await Promise.all(imageFiles.map(async (file) => {
+        const imgData = new FormData();
+        imgData.append('image', file);
+        try {
+          const uploadRes = await fetch('http://localhost:8080/api/upload', {
+            method: 'POST',
+            body: imgData
+          });
+          const uploadJson = await uploadRes.json();
+          return uploadJson.url || null;
+        } catch (err) {
+          console.error("Image upload failed", err);
+          return null;
         }
-      } catch (err) {
-        console.error("Image upload failed", err);
-      }
+      }));
+      // remove nulls
+      finalImageUrls = finalImageUrls.filter(Boolean);
     }
 
     const isEditing = !!currentProduct;
@@ -100,7 +104,8 @@ const AdminDashboard = () => {
 
     const productPayload = {
       ...formData,
-      imageUrl: finalImageUrl,
+      imageUrl: finalImageUrls.length > 0 ? finalImageUrls[0] : '',
+      images: finalImageUrls,
       price: parseFloat(formData.price),
       sizes: formData.sizes.split(',').map(s => s.trim()).filter(Boolean),
       colors: formData.colors.split(',').map(c => c.trim()).filter(Boolean)
@@ -114,7 +119,7 @@ const AdminDashboard = () => {
       .then(res => res.json())
       .then(data => {
         setShowProductModal(false);
-        setImageFile(null);
+        setImageFiles([]);
         fetchProducts();
       })
       .catch(err => console.error("Error saving product:", err));
@@ -139,17 +144,18 @@ const AdminDashboard = () => {
         description: product.description || '',
         price: product.price ? product.price.toString() : '',
         imageUrl: product.imageUrl || '',
+        images: product.images || (product.imageUrl ? [product.imageUrl] : []),
         category: product.category || '',
         sizes: product.sizes ? product.sizes.join(', ') : '',
         colors: product.colors ? product.colors.join(', ') : ''
       });
-      setImageFile(null);
+      setImageFiles([]);
     } else {
       setCurrentProduct(null);
       setFormData({
-        itemCode: '', name: '', description: '', price: '', imageUrl: '', category: '', sizes: '', colors: ''
+        itemCode: '', name: '', description: '', price: '', imageUrl: '', images: [], category: '', sizes: '', colors: ''
       });
-      setImageFile(null);
+      setImageFiles([]);
     }
     setShowProductModal(true);
   };
@@ -256,7 +262,7 @@ const AdminDashboard = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
-                          ${product.price.toFixed(2)}
+                          Rs {product.price.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end space-x-3">
@@ -324,7 +330,7 @@ const AdminDashboard = () => {
                               </li>
                             ))}
                           </ul>
-                          <div className="text-sm font-bold text-primary">${order.totalAmount?.toFixed(2)}</div>
+                          <div className="text-sm font-bold text-primary">Rs {order.totalAmount?.toFixed(2)}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <select 
@@ -387,26 +393,45 @@ const AdminDashboard = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Price ($)</label>
+                    <label className="block text-sm font-medium text-gray-700">Price (Rs)</label>
                     <input type="number" step="0.01" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary focus:border-primary sm:text-sm" />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Category</label>
-                    <input type="text" required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary focus:border-primary sm:text-sm" />
+                    <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary focus:border-primary sm:text-sm bg-white">
+                      <option value="" disabled>Select a Category...</option>
+                      <option value="T-Shirts">T-Shirts</option>
+                      <option value="Blouses">Blouses</option>
+                      <option value="Pants">Pants</option>
+                      <option value="Dresses">Dresses</option>
+                      <option value="Outerwear">Outerwear</option>
+                    </select>
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Product Image Upload</label>
+                    <label className="block text-sm font-medium text-gray-700">Product Images</label>
                     <input 
                       type="file" 
                       accept="image/*"
-                      onChange={e => setImageFile(e.target.files[0])} 
+                      multiple
+                      onChange={e => setImageFiles(Array.from(e.target.files))} 
                       className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-secondary transition-colors" 
                     />
-                    {formData.imageUrl && !imageFile && (
-                      <p className="mt-2 text-xs text-gray-500">Current image provided. Uploading a new one will override it.</p>
-                    )}
+                    
+                    <div className="mt-4 flex flex-wrap gap-4">
+                      {imageFiles.map((file, idx) => (
+                        <div key={`new-${idx}`} className="relative w-20 h-20 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                          <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
+                          <div className="absolute top-0 right-0 bg-accent text-white text-[10px] px-1 rounded-bl-lg">NEW</div>
+                        </div>
+                      ))}
+                      {imageFiles.length === 0 && formData.images?.map((url, idx) => (
+                        <div key={`old-${idx}`} className="relative w-20 h-20 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                          <img src={url} alt="preview" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div>

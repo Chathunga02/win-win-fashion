@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
   const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] || '');
   const [selectedColor, setSelectedColor] = useState(product.colors?.[0] || '');
   const [isAdded, setIsAdded] = useState(false);
+  const [currentImageIdx, setCurrentImageIdx] = useState(0);
+
+  const imagesArray = product.images && product.images.length > 0 
+    ? product.images 
+    : [product.imageUrl || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80"];
 
   const handleAddToCart = () => {
     addToCart(product, 1, selectedSize, selectedColor);
@@ -18,12 +23,36 @@ const ProductCard = ({ product }) => {
     <div className="group flex flex-col bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
       <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
         <img 
-          src={product.imageUrl || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80"} 
+          src={imagesArray[currentImageIdx]} 
           alt={product.name}
           className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold text-secondary shadow-sm select-none">
-          ${product.price.toFixed(2)}
+        
+        {imagesArray.length > 1 && (
+          <>
+            <button 
+              onClick={(e) => { e.preventDefault(); setCurrentImageIdx(prev => prev === 0 ? imagesArray.length - 1 : prev - 1); }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 p-1.5 rounded-full text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md hover:bg-white flex items-center justify-center z-20"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={(e) => { e.preventDefault(); setCurrentImageIdx(prev => prev === imagesArray.length - 1 ? 0 : prev + 1); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 p-1.5 rounded-full text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md hover:bg-white flex items-center justify-center z-20"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-1.5 z-20">
+              {imagesArray.map((_, idx) => (
+                <div key={idx} className={`w-1.5 h-1.5 rounded-full shadow-sm transition-colors ${currentImageIdx === idx ? 'bg-secondary ring-1 ring-white' : 'bg-white/50'}`} />
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold text-secondary shadow-sm select-none z-20">
+          Rs {product.price.toFixed(2)}
         </div>
       </div>
       
